@@ -78,6 +78,8 @@ def select_backend(embedding_model,
             from ._sentencetransformers import SentenceTransformerBackend
             if language.lower() in ["English", "english", "en"]:
                 return SentenceTransformerBackend("all-MiniLM-L6-v2")
+            elif language.lower() in ["German", "german", "de"]:
+                return SentenceTransformerBackend("T-Systems-onsite/german-roberta-sentence-transformer-v2")
             elif language.lower() in languages or language == "multilingual":
                 return SentenceTransformerBackend("paraphrase-multilingual-MiniLM-L12-v2")
             else:

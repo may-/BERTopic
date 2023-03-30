@@ -119,6 +119,7 @@ class BERTopic:
                  ctfidf_model: TfidfTransformer = None,
                  representation_model: BaseRepresentation = None,
                  verbose: bool = False,
+                 min_cluster_size: int = 2,
                  ):
         """BERTopic initialization
 
@@ -231,6 +232,7 @@ class BERTopic:
         self.custom_labels_ = None
         self.representative_docs_ = {}
         self.c_tf_idf_ = None
+        self.min_cluster_size = min_cluster_size
 
         # Private attributes for internal tracking purposes
         self._outliers = 1
@@ -3303,7 +3305,7 @@ class BERTopic:
         else:
             embeddings = self.c_tf_idf_.toarray()
         norm_data = normalize(embeddings, norm='l2')
-        predictions = hdbscan.HDBSCAN(min_cluster_size=2,
+        predictions = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size,
                                       metric='euclidean',
                                       cluster_selection_method='eom',
                                       prediction_data=True).fit_predict(norm_data[self._outliers:])

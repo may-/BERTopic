@@ -1,8 +1,8 @@
 import numpy as np
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from typing import List
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import normalize
 from transformers.pipelines import Pipeline
 
@@ -39,6 +39,9 @@ class HFTransformerBackend(BaseEmbedder):
         else:
             raise ValueError("Please select a correct transformers pipeline. For example: "
                              "pipeline('feature-extraction', model='distilbert-base-cased', device=0)")
+        self.batch_size = 1
+        if hasattr(self.embedding_model, "_batch_size"):
+            self.batch_size = self.embedding_model._batch_size
 
     def embed(self,
               documents: List[str],
@@ -54,33 +57,45 @@ class HFTransformerBackend(BaseEmbedder):
             Document/words embeddings with shape (n, m) with `n` documents/words
             that each have an embeddings size of `m`
         """
-        dataset = MyDataset(documents)
+        #dataset = MyDataset(documents)
+        dataloader = DataLoader(documents, batch_size=self.batch_size)
 
         embeddings = []
-        for document, features in tqdm(zip(documents, self.embedding_model(dataset, truncation=True, padding=True)),
-                                       total=len(dataset), disable=not verbose):
-            embeddings.append(self._embed(document, features))
+        #for document, features in tqdm(zip(documents, self.embedding_model(dataset, truncation=True, padding=True)),
+        #                               total=len(dataset), disable=not verbose):        
+        for batch in tqdm(dataloader, total=len(documents), disable=not verbose):
+            embeddings.append(self._embed(batch))
 
-        return np.array(embeddings)
+        embeddings = np.vstack(embeddings)
+        assert len(documents) == embeddings.shape[0], (len(documents), embeddings.shape)
+        return embeddings
 
-    def _embed(self,
-               document: str,
-               features: np.ndarray) -> np.ndarray:
+    def _embed(self, batch: List[str]) -> np.ndarray:
         """ Mean pooling
 
         Arguments:
-            document: The document for which to extract the attention mask
-            features: The embeddings for each token
+            batch: batch object, here list of documents
+        #    document: The document for which to extract the attention mask
+        #    features: The embeddings for each token
 
         Adopted from:
         https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2#usage-huggingface-transformers
         """
-        token_embeddings = np.array(features)
-        attention_mask = self.embedding_model.tokenizer(document, truncation=True, padding=True, return_tensors="np")["attention_mask"]
-        input_mask_expanded = np.broadcast_to(np.expand_dims(attention_mask, -1), token_embeddings.shape)
-        sum_embeddings = np.sum(token_embeddings * input_mask_expanded, 1)
-        sum_mask = np.clip(input_mask_expanded.sum(1), a_min=1e-9, a_max=input_mask_expanded.sum(1).max())
-        embedding = normalize(sum_embeddings / sum_mask)[0]
+        inputs = self.embedding_model.tokenizer(batch, truncation=True, padding=True, return_tensors="pt")
+        out = self.embedding_model.model(**inputs.to(self.embedding_model.device))
+        
+        if hasattr(out, "pooler_output"):
+            embedding = out.pooler_output.detach().cpu().numpy()  # shape [batch_size, embed_dim]
+        else:
+            # Mean pooling
+            hidden_state = out.last_hidden_state.detach().cpu().numpy()  # shape [batch_size, seq_len, embed_dim]
+            attention_mask = inputs["attention_mask"].cpu().numpy()
+            input_mask_expanded = np.broadcast_to(np.expand_dims(attention_mask, -1), token_embeddings.shape)
+            sum_embeddings = np.sum(token_embeddings * input_mask_expanded, 1)
+            sum_mask = np.clip(input_mask_expanded.sum(1), a_min=1e-9, a_max=input_mask_expanded.sum(1).max())
+            embedding = normalize(sum_embeddings / sum_mask)[0]
+        
+        assert embedding.shape[0] == len(inputs["input_ids"]), embedding.shape  # batch_size
         return embedding
 
 
