@@ -23,7 +23,8 @@ from typing import List, Tuple, Union, Mapping, Any, Callable, Iterable
 
 # Models
 import hdbscan
-from umap import UMAP
+from umap import umap_ as UMAP
+#from umap import UMAP
 from sklearn.preprocessing import normalize
 from sklearn import __version__ as sklearn_version
 from sklearn.cluster import AgglomerativeClustering
@@ -208,7 +209,7 @@ class BERTopic:
         self.representation_model = representation_model
 
         # UMAP or another algorithm that has .fit and .transform functions
-        self.umap_model = umap_model or UMAP(n_neighbors=15,
+        self.umap_model = umap_model or UMAP.UMAP(n_neighbors=15,
                                              n_components=5,
                                              min_dist=0.0,
                                              metric='cosine',
@@ -3296,7 +3297,10 @@ class BERTopic:
             documents: Updated dataframe with documents and the reduced number of Topics
         """
         topics = documents.Topic.tolist().copy()
-        unique_topics = sorted(list(documents.Topic.unique()))[self._outliers:]
+        unique_topics = sorted(list(documents.Topic.unique()))
+        #print('unique_topics', unique_topics, self._outliers)
+        if len(unique_topics) > 1:
+            unique_topics = unique_topics[self._outliers:]
         max_topic = unique_topics[-1]
 
         # Find similar topics

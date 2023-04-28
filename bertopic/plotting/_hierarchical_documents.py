@@ -3,7 +3,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import math 
 
-from umap import UMAP
+from umap import umap_ as UMAP
+#from umap import UMAP
 from typing import List, Union
 
 

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from umap import UMAP
+from umap import umap_ as UMAP
+#from umap import UMAP
 from typing import List
 from sklearn.preprocessing import MinMaxScaler
 
