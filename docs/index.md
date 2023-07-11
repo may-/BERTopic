@@ -10,16 +10,29 @@ hide:
 BERTopic is a topic modeling technique that leverages 🤗 transformers and c-TF-IDF to create dense clusters
 allowing for easily interpretable topics whilst keeping important words in the topic descriptions.
 
-BERTopic supports 
-[**guided**](https://maartengr.github.io/BERTopic/getting_started/guided/guided.html), 
-[**supervised**](https://maartengr.github.io/BERTopic/getting_started/supervised/supervised.html), 
-[**semi-supervised**](https://maartengr.github.io/BERTopic/getting_started/semisupervised/semisupervised.html), 
-[**manual**](https://maartengr.github.io/BERTopic/getting_started/manual/manual.html), 
-[**long-document**](https://maartengr.github.io/BERTopic/getting_started/distribution/distribution.html),
-[**hierarchical**](https://maartengr.github.io/BERTopic/getting_started/hierarchicaltopics/hierarchicaltopics.html), 
-[**class-based**](https://maartengr.github.io/BERTopic/getting_started/topicsperclass/topicsperclass.html),
-[**dynamic**](https://maartengr.github.io/BERTopic/getting_started/topicsovertime/topicsovertime.html), and 
-[**online**](https://maartengr.github.io/BERTopic/getting_started/online/online.html) topic modeling. It even supports visualizations similar to LDAvis!
+BERTopic supports all kinds of topic modeling techniques:  
+<table>
+  <tr>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/guided/guided.html">Guided</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/supervised/supervised.html">Supervised</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/semisupervised/semisupervised.html">Semi-supervised</a></td>
+ </tr>
+   <tr>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/manual/manual.html">Manual</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/distribution/distribution.html">Multi-topic distributions</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/hierarchicaltopics/hierarchicaltopics.html">Hierarchical</a></td>
+ </tr>
+ <tr>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/topicsperclass/topicsperclass.html">Class-based</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/topicsovertime/topicsovertime.html">Dynamic</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/online/online.html">Online/Incremental</a></td>
+ </tr>
+ <tr>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/multimodal/multimodal.html">Multimodal</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/multiaspect/multiaspect.html">Multi-aspect</a></td>
+    <td><a href="https://maartengr.github.io/BERTopic/getting_started/representation/representation.html#text-generation-prompts">Text Generation</a></td>
+ </tr>
+</table>
 
 Corresponding medium posts can be found [here](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6?source=friends_link&sk=0b5a470c006d1842ad4c8a3057063a99), [here](https://towardsdatascience.com/interactive-topic-modeling-with-bertopic-1ea55e7d73d8?sk=03c2168e9e74b6bda2a1f3ed953427e4) and [here](https://towardsdatascience.com/using-whisper-and-bertopic-to-model-kurzgesagts-videos-7d8a63139bdf?sk=b1e0fd46f70cb15e8422b4794a81161d). For a more detailed overview, you can read the [paper](https://arxiv.org/abs/2203.05794) or see a [brief overview](https://maartengr.github.io/BERTopic/algorithm/algorithm.html). 
 
@@ -35,10 +48,11 @@ You may want to install more depending on the transformers and language backends
 The possible installations are: 
 
 ```bash
-pip install bertopic[flair]
-pip install bertopic[gensim]
-pip install bertopic[spacy]
-pip install bertopic[use]
+# Choose an embedding backend
+pip install bertopic[flair, gensim, spacy, use]
+
+# Topic modeling with images
+pip install bertopic[vision]
 ```
 
 ## **Quick Start**
@@ -98,7 +112,38 @@ Think! It is the SCSI card doing...	    49     49_windows_drive_dos_file	windows
 1) I have an old Jasmine drive...	    49     49_windows_drive_dos_file	windows - drive - docs...	    0.038983       ...
 ```
 
-**NOTE**: Use `BERTopic(language="multilingual")` to select a model that supports 50+ languages. 
+!!! tip "Multilingual"
+
+    Use `BERTopic(language="multilingual")` to select a model that supports 50+ languages. 
+
+
+## **Fine-tune Topic Representations**
+
+In BERTopic, there are a number of different [topic representations](https://maartengr.github.io/BERTopic/getting_started/representation/representation.html) that we can choose from. They are all quite different from one another and give interesting perspectives and variations of topic representations. A great start is `KeyBERTInspired`, which for many users increases the coherence and reduces stopwords from the resulting topic representations:
+
+```python
+from bertopic.representation import KeyBERTInspired
+
+# Fine-tune your topic representations
+representation_model = KeyBERTInspired()
+topic_model = BERTopic(representation_model=representation_model)
+```
+
+However, you might want to use something more powerful to describe your clusters. You can even use ChatGPT or other models from OpenAI to generate labels, summaries, phrases, keywords, and more:
+
+```python
+import openai
+from bertopic.representation import OpenAI
+
+# Fine-tune topic representations with GPT
+openai.api_key = "sk-..."
+representation_model = OpenAI(model="gpt-3.5-turbo", chat=True)
+topic_model = BERTopic(representation_model=representation_model)
+```
+
+!!! tip "Multi-aspect Topic Modeling"
+    Instead of iterating over all of these different topic representations, you can model them simultaneously with [multi-aspect topic representations](https://maartengr.github.io/BERTopic/getting_started/multiaspect/multiaspect.html) in BERTopic. 
+
 
 ## **Modularity**
 
@@ -107,7 +152,16 @@ By default, the main steps for topic modeling with BERTopic are sentence-transfo
 <iframe width="1200" height="500" src="https://user-images.githubusercontent.com/25746895/218420473-4b2bb539-9dbe-407a-9674-a8317c7fb3bf.mp4
 " title="BERTopic Overview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-You can swap out any of these models or even remove them entirely. Starting with the embedding step, you can find out how to do this [here](https://maartengr.github.io/BERTopic/getting_started/embeddings/embeddings.html) and more about the underlying algorithm and assumptions [here](https://maartengr.github.io/BERTopic/algorithm/algorithm.html). 
+You can swap out any of these models or even remove them entirely. The following steps are completely modular:
+
+1. [Embedding](https://maartengr.github.io/BERTopic/getting_started/embeddings/embeddings.html) documents
+2. [Reducing dimensionality](https://maartengr.github.io/BERTopic/getting_started/dim_reduction/dim_reduction.html) of embeddings
+3. [Clustering](https://maartengr.github.io/BERTopic/getting_started/clustering/clustering.html) reduced embeddings into topics
+4. [Tokenization](https://maartengr.github.io/BERTopic/getting_started/vectorizers/vectorizers.html) of topics
+5. [Weight](https://maartengr.github.io/BERTopic/getting_started/ctfidf/ctfidf.html) tokens
+6. [Represent topics](https://maartengr.github.io/BERTopic/getting_started/representation/representation.html) with one or [multiple](https://maartengr.github.io/BERTopic/getting_started/multiaspect/multiaspect.html) representations
+
+To find more about the underlying algorithm and assumptions [here](https://maartengr.github.io/BERTopic/algorithm/algorithm.html). 
 
 
 ## **Overview**
@@ -135,7 +189,7 @@ Below, you will find an overview of common functions in BERTopic.
 | Reduce nr of topics | `.reduce_topics(docs, nr_topics=30)` |
 | Reduce outliers | `.reduce_outliers(docs, topics)` |
 | Find topics | `.find_topics("vehicle")` |
-| Save model    |  `.save("my_model")` |
+| Save model    |  `.save("my_model", serialization="safetensors")` |
 | Load model    |  `BERTopic.load("my_model")` |
 | Get parameters |  `.get_params()` |
 
@@ -147,17 +201,17 @@ public attributes that can be used to access model information.
 
 | Attribute | Description |
 |------------------------|---------------------------------------------------------------------------------------------|
-| topics_               | The topics that are generated for each document after training or updating the topic model. |
-| probabilities_ | The probabilities that are generated for each document if HDBSCAN is used. |
-| topic_sizes_           | The size of each topic                                                                      |
-| topic_mapper_          | A class for tracking topics and their mappings anytime they are merged/reduced.             |
-| topic_representations_ | The top *n* terms per topic and their respective c-TF-IDF values.                             |
-| c_tf_idf_              | The topic-term matrix as calculated through c-TF-IDF.                                       |
-| topic_labels_          | The default labels for each topic.                                                          |
-| custom_labels_         | Custom labels for each topic as generated through `.set_topic_labels`.                                                               |
-| topic_embeddings_      | The embeddings for each topic if `embedding_model` was used.                                                              |
-| representative_docs_   | The representative documents for each topic if HDBSCAN is used.                                                |
-
+| `.topics_`               | The topics that are generated for each document after training or updating the topic model. |
+| `.probabilities_` | The probabilities that are generated for each document if HDBSCAN is used. |
+| `.topic_sizes_`           | The size of each topic                                                                      |
+| `.topic_mapper_`          | A class for tracking topics and their mappings anytime they are merged/reduced.             |
+| `.topic_representations_` | The top *n* terms per topic and their respective c-TF-IDF values.                           |
+| `.c_tf_idf_`              | The topic-term matrix as calculated through c-TF-IDF.                                       |
+| `.topic_aspects_`          | The different aspects, or representations, of each topic.                                  |
+| `.topic_labels_`          | The default labels for each topic.                                                          |
+| `.custom_labels_`         | Custom labels for each topic as generated through `.set_topic_labels`.                      |
+| `.topic_embeddings_`      | The embeddings for each topic if `embedding_model` was used.                                |
+| `.representative_docs_`   | The representative documents for each topic if HDBSCAN is used.                             |
 
 ### Variations
 There are many different use cases in which topic modeling can be used. As such, several variations of BERTopic have been developed such that one package can be used across many use cases.
@@ -169,10 +223,12 @@ There are many different use cases in which topic modeling can be used. As such,
 | [Semi-supervised Topic Modeling](https://maartengr.github.io/BERTopic/getting_started/semisupervised/semisupervised.html) | `.fit(docs, y=y)` |
 | [Supervised Topic Modeling](https://maartengr.github.io/BERTopic/getting_started/supervised/supervised.html) | `.fit(docs, y=y)` |
 | [Manual Topic Modeling](https://maartengr.github.io/BERTopic/getting_started/manual/manual.html) | `.fit(docs, y=y)` |
+| [Multimodal Topic Modeling](https://maartengr.github.io/BERTopic/getting_started/multimodal/multimodal.html) | ``.fit(docs, images=images)`` |
 | [Topic Modeling per Class](https://maartengr.github.io/BERTopic/getting_started/topicsperclass/topicsperclass.html) | `.topics_per_class(docs, classes)` |
 | [Dynamic Topic Modeling](https://maartengr.github.io/BERTopic/getting_started/topicsovertime/topicsovertime.html) | `.topics_over_time(docs, timestamps)` |
 | [Hierarchical Topic Modeling](https://maartengr.github.io/BERTopic/getting_started/hierarchicaltopics/hierarchicaltopics.html) | `.hierarchical_topics(docs)` |
 | [Guided Topic Modeling](https://maartengr.github.io/BERTopic/getting_started/guided/guided.html) | `BERTopic(seed_topic_list=seed_topic_list)` |
+
 
 ### Visualizations
 Evaluating topic models can be rather difficult due to the somewhat subjective nature of evaluation. 

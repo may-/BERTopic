@@ -10,10 +10,11 @@ You may want to install more depending on the transformers and language backends
 The possible installations are: 
 
 ```bash
-pip install bertopic[flair]
-pip install bertopic[gensim]
-pip install bertopic[spacy]
-pip install bertopic[use]
+# Choose an embedding backend
+pip install bertopic[flair, gensim, spacy, use]
+
+# Topic modeling with images
+pip install bertopic[vision]
 ```
 
 ## **Quick Start**
@@ -73,13 +74,41 @@ Think! It is the SCSI card doing...	    49     49_windows_drive_dos_file	windows
 1) I have an old Jasmine drive...	    49     49_windows_drive_dos_file	windows - drive - docs...	    0.038983       ...
 ```
 
-!!! Tip "Tip!"
+!!! Tip "Multilingual"
     Use `BERTopic(language="multilingual")` to select a model that supports 50+ languages. 
 
-## **Visualize Topics**
-After having trained our `BERTopic` model, we can iteratively go through perhaps a hundred topics to get a good 
-understanding of the topics that were extracted. However, that takes quite some time and lacks a global representation. 
-Instead, we can visualize the topics that were generated in a way very similar to 
+
+## **Fine-tune Topic Representations**
+
+In BERTopic, there are a number of different [topic representations](https://maartengr.github.io/BERTopic/getting_started/representation/representation.html) that we can choose from. They are all quite different from one another and give interesting perspectives and variations of topic representations. A great start is `KeyBERTInspired`, which for many users increases the coherence and reduces stopwords from the resulting topic representations:
+
+```python
+from bertopic.representation import KeyBERTInspired
+
+# Fine-tune your topic representations
+representation_model = KeyBERTInspired()
+topic_model = BERTopic(representation_model=representation_model)
+```
+
+However, you might want to use something more powerful to describe your clusters. You can even use ChatGPT or other models from OpenAI to generate labels, summaries, phrases, keywords, and more:
+
+```python
+import openai
+from bertopic.representation import OpenAI
+
+# Fine-tune topic representations with GPT
+openai.api_key = "sk-..."
+representation_model = OpenAI(model="gpt-3.5-turbo", chat=True)
+topic_model = BERTopic(representation_model=representation_model)
+```
+
+!!! tip "Multi-aspect Topic Modeling"
+    Instead of iterating over all of these different topic representations, you can model them simultaneously with [multi-aspect topic representations](https://maartengr.github.io/BERTopic/getting_started/multiaspect/multiaspect.html) in BERTopic. 
+
+
+## **Visualizations**
+After having trained our BERTopic model, we can iteratively go through hundreds of topics to get a good 
+understanding of the topics that were extracted. However, that takes quite some time and lacks a global representation. Instead, we can use one of the [many visualization options](https://maartengr.github.io/BERTopic/getting_started/visualization/visualization.html) in BERTopic. For example, we can visualize the topics that were generated in a way very similar to 
 [LDAvis](https://github.com/cpsievert/LDAvis):
 
 ```python
@@ -89,22 +118,63 @@ topic_model.visualize_topics()
 <iframe src="viz.html" style="width:1000px; height: 680px; border: 0px;""></iframe>
 
 ## **Save/Load BERTopic model**
-We can easily save a trained BERTopic model by calling `save`:
+
+There are three methods for saving BERTopic:
+
+1. A light model with `.safetensors` and config files
+2. A light model with pytorch `.bin` and config files
+3. A full model with `.pickle`
+
+Method 3 allows for saving the entire topic model but has several drawbacks:
+
+* Arbitrary code can be run from `.pickle` files
+* The resulting model is rather large (often > 500MB) since all sub-models need to be saved
+* Explicit and specific version control is needed as they typically only run if the environment is exactly the same
+ 
+> **It is advised to use methods 1 or 2 for saving.**
+
+These methods have a number of advantages:
+
+* `.safetensors` is a relatively **safe format**
+* The resulting model can be **very small** (often < 20MB) since no sub-models need to be saved
+* Although version control is important, there is a bit more **flexibility** with respect to specific versions of packages
+* More easily used in **production**
+* **Share** models with the HuggingFace Hub
+
+
+!!! Tip "Tip"
+    For more detail about how to load in a custom vectorizer, representation model, and more, it is highly advised to checkout the [serialization](https://maartengr.github.io/BERTopic/getting_started/serialization/serialization.html) page. It contains more examples, details, and some tips and tricks for loading and saving your environment. 
+
+
+The methods are as used as follows:
+
 ```python
-from bertopic import BERTopic
-topic_model = BERTopic()
-topic_model.save("my_model")
+topic_model = BERTopic().fit(my_docs)
+
+# Method 1 - safetensors
+embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
+topic_model.save("path/to/my/model_dir", serialization="safetensors", save_ctfidf=True, save_embedding_model=embedding_model)
+
+# Method 2 - pytorch
+embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
+topic_model.save("path/to/my/model_dir", serialization="pytorch", save_ctfidf=True, save_embedding_model=embedding_model)
+
+# Method 3 - pickle
+topic_model.save("my_model", serialization="pickle")
 ```
 
-Then, we can load the model in one line:
-```python
-topic_model = BERTopic.load("my_model")
-```
+To load a model:
 
-!!! Tip "Tip!"
-    If you do not want to save the embedding model because it is loaded from the cloud, simply run 
-    `model.save("my_model", save_embedding_model=False)` instead. Then, you can load in the model 
-    with `BERTopic.load("my_model", embedding_model="whatever_model_you_used")`. 
+```python
+# Load from directory
+loaded_model = BERTopic.load("path/to/my/model_dir")
+
+# Load from file
+loaded_model = BERTopic.load("my_model")
+
+# Load from HuggingFace
+loaded_model = BERTopic.load("MaartenGr/BERTopic_Wikipedia")
+```
 
 !!! Warning "Warning"
     When saving the model, make sure to also keep track of the versions of dependencies and Python used. 
